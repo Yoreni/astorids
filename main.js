@@ -203,7 +203,7 @@ function play(delta)
         //colission detection between player and astroid
         if(hitTestRectangle(player,as))
         {
-            //state = end
+            state = end
         }
     })
 }
