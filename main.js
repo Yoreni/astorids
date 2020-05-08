@@ -9,18 +9,19 @@ let Container = PIXI.Container
 let Graphics = PIXI.Graphics
 
 //varibles that will be used all over
-let gameScene,player,bullets,astorids,scoreText,endScoreText
+let gameScene,player,bullets,astorids,scoreText,endScoreText,playAgain
 let lastShot = 0;
 var inputs = {};
 
 //player varibles
 let score = 0
+let difficulty = 0
 
 let app = new PIXI.Application({width: 512, height: 512});
 document.body.appendChild(app.view);
 var state = null;
 
-Loader.add("images/player.png").add("images/bullet.png").add("images/astroid.png").load(setup);
+Loader.add("images/player.png").add("images/bullet.png").add("images/astroid.png").add("images/PlayAgain.png").add("images/background.png").load(setup);
 
 function setup()
 {
@@ -30,6 +31,11 @@ function setup()
     endScene = new Container()
     endScene.visible = false
     app.stage.addChild(endScene)
+    
+    let background = new Sprite(Resources["images/background.png"].texture)
+    background.anchor.set(0.5,0.5)
+    background.position.set(256,256)
+    gameScene.addChild(background)
     
     player = new Sprite(Resources["images/player.png"].texture)
     player.position.set(256,256);
@@ -79,6 +85,13 @@ function setup()
     endScoreText.anchor.set(0.5,0.5)
     endScene.addChild(endScoreText)
     
+    playAgain = new Sprite(Resources["images/PlayAgain.png"].texture)
+    playAgain.position.set(256,300)
+    playAgain.anchor.set(0.5,0.5)
+    playAgain.interactive = true;
+    playAgain.on("mousedown",resetGame)
+    endScene.addChild(playAgain)
+    
     state = play
     app.ticker.add(delta => gameLoop(delta));
 }
@@ -116,6 +129,7 @@ function play(delta)
     player.vy = -player.thrust * Math.cos(player.rotation)
     player.x += player.vx
     player.y += player.vy
+    difficulty += 0.001
     contain(player, {x: 0, y: 0, width: 512, height: 512})
     
     bullets.forEach(function(bullet)
@@ -129,10 +143,10 @@ function play(delta)
         }
     });
     
-    if(randomInt(1,100) > 90)
+    if(randomInt(1,100) > 96 - Math.floor(difficulty / 3))
     {
         let as = makeAst()
-        if(randomInt(1,100) > 70)
+        if(randomInt(1,100) > 90 - (Math.floor(difficulty - 7) * 3) && difficulty >= 7)
         {
             as.scale.set(2,2);
         }
@@ -208,6 +222,27 @@ function play(delta)
     })
 }
 
+function resetGame()
+{
+    gameScene.visible = true;
+    endScene.visible = false;
+    score = 0;
+    difficulty = 0;
+    player.position.set(256,256);
+    player.rotation = 0;
+    bullets.forEach(function(bullet)
+    {
+        gameScene.removeChild(bullet);
+        bullets.delete(bullet);
+    })
+    astorids.forEach(function(as)
+    {
+        gameScene.removeChild(as);
+        astorids.delete(as);
+    })
+    state = play;
+}
+
 function end(delta)
 {
     gameScene.visible = false
@@ -222,7 +257,7 @@ function makeAst()
     var randY = randomInt(-20,532);
     var rand = randomInt(0,3);
     var randAngle = 0
-    as.speed = randomInt(10,50) / 10
+    as.speed = randomInt(10,30 + Math.floor(difficulty * 3.2)) / 10
     switch (rand)
     {
         case 0:
