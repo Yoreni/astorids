@@ -9,15 +9,16 @@ let Container = PIXI.Container
 let Graphics = PIXI.Graphics
 
 //varibles that will be used all over
-let gameScene,player,bullets,astorids,scoreText,endScoreText,playAgain
+let gameScene,player,bullets,astorids,scoreText,endScoreText,playAgain,warpedPlayer
 let lastShot = 0;
 var inputs = {};
-
+var shipX = 512
+var shipY = 512
 //player varibles
 let score = 0
 let difficulty = 0
 
-let app = new PIXI.Application({width: 512, height: 512});
+let app = new PIXI.Application({width: 1024, height: 1024});
 document.body.appendChild(app.view);
 var state = null;
 
@@ -34,16 +35,20 @@ function setup()
     
     let background = new Sprite(Resources["images/background.png"].texture)
     background.anchor.set(0.5,0.5)
-    background.position.set(256,256)
+    background.position.set(512,512)
     gameScene.addChild(background)
     
     player = new Sprite(Resources["images/player.png"].texture)
-    player.position.set(256,256);
+    player.position.set(512,512);
     player.vx = 0
     player.vy = 0
     player.thrust = 0
     player.anchor.set(0.5,0.5)
     gameScene.addChild(player)
+    
+    warpedPlayer = new Sprite(Resources["images/player.png"].texture)
+    warpedPlayer.anchor.set(0.5,0.5)
+    gameScene.addChild(warpedPlayer)
     
     bullets = new List()
     astorids = new List()
@@ -56,7 +61,7 @@ function setup()
     let style = new PIXI.TextStyle(
     {
         fontFamily: "Arial",
-        fontSize: 24,
+        fontSize: 48,
         fill: "white",
         stroke: '#000000',
         strokeThickness: 1,
@@ -69,32 +74,38 @@ function setup()
     let style2 = new PIXI.TextStyle(
     {
         fontFamily: "Arial",
-        fontSize: 36,
+        fontSize: 72,
         fill: "white",
         stroke: '#000000',
         strokeThickness: 1,
     })
         
     let gameover = new PIXI.Text("Game Over",style2)
-    gameover.position.set(256,236)
+    gameover.position.set(512,472)
     gameover.anchor.set(0.5,0.5)
     endScene.addChild(gameover)
     
     endScoreText = new PIXI.Text("Score: 0",style)
-    endScoreText.position.set(256,270)
+    endScoreText.position.set(512,540)
     endScoreText.anchor.set(0.5,0.5)
     endScene.addChild(endScoreText)
     
     playAgain = new Sprite(Resources["images/PlayAgain.png"].texture)
-    playAgain.position.set(256,300)
+    playAgain.position.set(512,600)
     playAgain.anchor.set(0.5,0.5)
     playAgain.interactive = true;
     playAgain.on("mousedown",resetGame)
     endScene.addChild(playAgain)
     
+    scaleToWindow(app.renderer.view);
     state = play
     app.ticker.add(delta => gameLoop(delta));
 }
+
+window.addEventListener("resize", function(event)
+{
+    scaleToWindow(app.renderer.view);
+});
 
 function gameLoop(delta)
 {
@@ -113,8 +124,8 @@ function gameLoop(delta)
             bullet.x = player.x + (Math.sin(player.rotation) * (player.width / 2))
             bullet.y = player.y - (Math.cos(player.rotation) * (player.height / 2))
             bullet.anchor.set(0.5,0.5)
-            bullet.vx = 5 * Math.sin(player.rotation)
-            bullet.vy = -5 * Math.cos(player.rotation)
+            bullet.vx = 10 * Math.sin(player.rotation)
+            bullet.vy = -10 * Math.cos(player.rotation)
             bullet.rotation = player.rotation
             bullet.hit = false;
             gameScene.addChild(bullet)
@@ -127,16 +138,35 @@ function play(delta)
 {
     player.vx = player.thrust * Math.sin(player.rotation)
     player.vy = -player.thrust * Math.cos(player.rotation)
-    player.x += player.vx
-    player.y += player.vy
+    shipX += player.vx
+    shipX = (shipX + 1024) % 1024
+    shipY += player.vy
+    shipY = (shipY + 1024) % 1024
+    player.position.set(shipX,shipY)
+    warpedPlayer.rotation = player.rotation
+    if((shipX < 200 || shipX > 824) && (shipY < 200 || shipY > 824))
+    {
+        warpedPlayer.position.set(shipX - 1024,shipY - 1024)
+    }
+    else if(shipX < 200 || shipX > 824)
+    {
+        warpedPlayer.position.set(shipX - 1024,shipY)
+    }
+    else if(shipY < 200 || shipY > 824)
+    {
+        warpedPlayer.position.set(shipX,shipY - 1024)      
+    }
+    else
+    {
+        warpedPlayer.position.set(-500,-500) 
+    }
     difficulty += 0.001
-    contain(player, {x: 0, y: 0, width: 512, height: 512})
     
     bullets.forEach(function(bullet)
     {
         bullet.x += bullet.vx
         bullet.y += bullet.vy
-        if(contain(bullet, {x: -4, y: -9, width: 516, height: 521}) != undefined)
+        if(contain(bullet, {x: -8, y: -18, width: 1032, height: 1042}) != undefined)
         {
             gameScene.removeChild(bullet)
             bullets.delete(bullet)
@@ -160,7 +190,7 @@ function play(delta)
     {
         as.x += as.vx;
         as.y += as.vy;
-        if(contain(as, {x: -32, y: -32, width: 576, height: 576}) != undefined)
+        if(contain(as, {x: -100, y: -100, width: 1152, height: 1152}) != undefined)
         {
             gameScene.removeChild(as);
             astorids.delete(as);
@@ -215,7 +245,7 @@ function play(delta)
             }
         })
         //colission detection between player and astroid
-        if(hitTestRectangle(player,as))
+        if(hitTestRectangle(player,as) || hitTestRectangle(warpedPlayer,as))
         {
             state = end
         }
@@ -228,7 +258,8 @@ function resetGame()
     endScene.visible = false;
     score = 0;
     difficulty = 0;
-    player.position.set(256,256);
+    shipX = 512
+    shipY = 512
     player.rotation = 0;
     bullets.forEach(function(bullet)
     {
@@ -253,35 +284,34 @@ function end(delta)
 function makeAst()
 {
     let as = new Sprite(Resources["images/astroid.png"].texture)
-    var randX = randomInt(-20,532);
-    var randY = randomInt(-20,532);
+    var randX = randomInt(-40,1064);
+    var randY = randomInt(-40,1064);
     var rand = randomInt(0,3);
     var randAngle = 0
     as.speed = randomInt(10,30 + Math.floor(difficulty * 3.2)) / 10
     switch (rand)
     {
         case 0:
-            randX = -20;
-            randAngle = (randomInt(120,180) / 100) * Math.PI
+            randX = -40;
+            randAngle = (randomInt(-90,90) / 100) * Math.PI
             break;
         case 1:
-            randX = 532;
-            randAngle = (randomInt(20,80) / 100) * Math.PI
+            randX = 1064;
+            randAngle = (randomInt(0,180) / 100) * Math.PI
             break;
         case 2:
-            randY = -20;
-            randAngle = (randomInt(-30,30) / 100) * Math.PI
+            randY = -40;
+            randAngle = (randomInt(90,270) / 100) * Math.PI
             break;
         case 3:
-            randY = 532;
-            randAngle = (randomInt(70,130) / 100) * Math.PI
+            randY = 1064;
+            randAngle = (randomInt(180,360) / 100) * Math.PI
             break;
     }
     as.rotation = randAngle
     as.x = randX
     as.y = randY
     as.anchor.set(0.5,0.5)
-    as.rotation = player.rotation
     as.vx = as.speed * Math.sin(as.rotation)
     as.vy = -as.speed * Math.cos(as.rotation)
     gameScene.addChild(as)
