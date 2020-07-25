@@ -9,14 +9,18 @@ let Container = PIXI.Container
 let Graphics = PIXI.Graphics
 
 //varibles that will be used all over
-let gameScene,player,bullets,astorids,scoreText,endScoreText,playAgain,warpedPlayer
-let lastShot = 0;
+let gameScene,ship,bullets,astorids,scoreText,endScoreText,playAgain,warpedShip
 var inputs = {};
-var shipX = 512
-var shipY = 512
+
 //player varibles
-let score = 0
-let difficulty = 0
+let player =
+{
+    score: 0,
+    difficulty: 0,
+    shipY: 512,
+    shipX: 512,
+    lastShot: 0,
+}
 
 let app = new PIXI.Application({width: 1024, height: 1024});
 document.body.appendChild(app.view);
@@ -38,17 +42,16 @@ function setup()
     background.position.set(512,512)
     gameScene.addChild(background)
     
-    player = new Sprite(Resources["images/player.png"].texture)
-    player.position.set(512,512);
-    player.vx = 0
-    player.vy = 0
-    player.thrust = 0
-    player.anchor.set(0.5,0.5)
-    gameScene.addChild(player)
+    ship = new Sprite(Resources["images/player.png"].texture)
+    ship.position.set(512,512);
+    ship.vx = 0
+    ship.vy = 0
+    ship.anchor.set(0.5,0.5)
+    gameScene.addChild(ship)
     
-    warpedPlayer = new Sprite(Resources["images/player.png"].texture)
-    warpedPlayer.anchor.set(0.5,0.5)
-    gameScene.addChild(warpedPlayer)
+    warpedShip = new Sprite(Resources["images/player.png"].texture)
+    warpedShip.anchor.set(0.5,0.5)
+    gameScene.addChild(warpedShip)
     
     bullets = new List()
     astorids = new List()
@@ -90,11 +93,9 @@ function setup()
     endScoreText.anchor.set(0.5,0.5)
     endScene.addChild(endScoreText)
     
-    playAgain = new Sprite(Resources["images/PlayAgain.png"].texture)
+    playAgain = new Button("Play again",resetGame)
     playAgain.position.set(512,600)
-    playAgain.anchor.set(0.5,0.5)
-    playAgain.interactive = true;
-    playAgain.on("mousedown",resetGame)
+    //playAgain.anchor.set(0.5,0.5)
     endScene.addChild(playAgain)
     
     scaleToWindow(app.renderer.view);
@@ -111,22 +112,27 @@ function gameLoop(delta)
 {
     state(delta)
     //keyboard press handleing
-    if(inputs.left.isDown) player.rotation -= 0.1
-    if(inputs.right.isDown) player.rotation += 0.1
-    if(inputs.up.isDown) player.thrust += (8 - player.thrust) * 0.2
-    else player.thrust *= 0.94
+    if(inputs.left.isDown) ship.rotation -= 0.1
+    if(inputs.right.isDown) ship.rotation += 0.1
+    if(inputs.up.isDown)
+    {
+        ship.vx += Math.sin(ship.rotation ) * 0.1
+        //if(ship.vx >= Math.sin(ship.rotation) * 5) ship.vx = Math.sin(ship.rotation) * 5
+        ship.vy += Math.cos(ship.rotation + Math.PI) * 0.1
+        //if(ship.vy >= Math.cos(ship.rotation + Math.PI) * 5) ship.vy = Math.cos(ship.rotation + Math.PI) * 5
+    }
     if(inputs.space.isDown)
     {
-        if(lastShot + 100 < new Date().getTime())
+        if(player.lastShot + 100 < new Date().getTime())
         {
-            lastShot = new Date().getTime()
+            player.lastShot = new Date().getTime()
             let bullet = new Sprite(Resources["images/bullet.png"].texture)
-            bullet.x = player.x + (Math.sin(player.rotation) * (player.width / 2))
-            bullet.y = player.y - (Math.cos(player.rotation) * (player.height / 2))
+            bullet.x = ship.x + (Math.sin(ship.rotation) * (ship.width / 2))
+            bullet.y = ship.y - (Math.cos(ship.rotation) * (ship.height / 2))
             bullet.anchor.set(0.5,0.5)
-            bullet.vx = 10 * Math.sin(player.rotation)
-            bullet.vy = -10 * Math.cos(player.rotation)
-            bullet.rotation = player.rotation
+            bullet.vx = 5 * Math.sin(ship.rotation)
+            bullet.vy = -5 * Math.cos(ship.rotation)
+            bullet.rotation = ship.rotation
             bullet.hit = false;
             gameScene.addChild(bullet)
             bullets.push(bullet)
@@ -136,31 +142,29 @@ function gameLoop(delta)
 
 function play(delta)
 {
-    player.vx = player.thrust * Math.sin(player.rotation)
-    player.vy = -player.thrust * Math.cos(player.rotation)
-    shipX += player.vx
-    shipX = (shipX + 1024) % 1024
-    shipY += player.vy
-    shipY = (shipY + 1024) % 1024
-    player.position.set(shipX,shipY)
-    warpedPlayer.rotation = player.rotation
-    if((shipX < 200 || shipX > 824) && (shipY < 200 || shipY > 824))
+    player.shipX += ship.vx
+    player.shipX = (player.shipX + 1024) % 1024
+    player.shipY += ship.vy
+    player.shipY = (player.shipY + 1024) % 1024
+    ship.position.set(player.shipX,player.shipY)
+    warpedShip.rotation = ship.rotation
+    if((player.shipX < 200 || player.shipX > 824) && (player.shipY < 200 || player.shipY > 824))
     {
-        warpedPlayer.position.set(shipX - 1024,shipY - 1024)
+        warpedShip.position.set(player.shipX - 1024,player.shipY - 1024)
     }
-    else if(shipX < 200 || shipX > 824)
+    else if(player.shipX < 200 || player.shipX > 824)
     {
-        warpedPlayer.position.set(shipX - 1024,shipY)
+        warpedShip.position.set(player.shipX - 1024,player.shipY)
     }
-    else if(shipY < 200 || shipY > 824)
+    else if(player.shipY < 200 || player.shipY > 824)
     {
-        warpedPlayer.position.set(shipX,shipY - 1024)      
+        warpedShip.position.set(player.shipX,player.shipY - 1024)      
     }
     else
     {
-        warpedPlayer.position.set(-500,-500) 
+        warpedShip.position.set(-500,-500) 
     }
-    difficulty += 0.001
+    player.difficulty += 0.001
     
     bullets.forEach(function(bullet)
     {
@@ -173,10 +177,10 @@ function play(delta)
         }
     });
     
-    if(randomInt(1,100) > 96 - Math.floor(difficulty / 3))
+    if(randomInt(1,100) > 96 - Math.floor(player.difficulty / 3))
     {
         let as = makeAst()
-        if(randomInt(1,100) > 90 - (Math.floor(difficulty - 7) * 3) && difficulty >= 7)
+        if(randomInt(1,100) > 90 - (Math.floor(player.difficulty - 7) * 3) && player.difficulty >= 7)
         {
             as.scale.set(2,2);
         }
@@ -184,7 +188,7 @@ function play(delta)
     }
     
     //updates the score
-    scoreText.text = "Score: " + score
+    scoreText.text = "Score: " + player.score
     
     astorids.forEach(function(as)
     {
@@ -204,13 +208,13 @@ function play(delta)
                 switch(as.scale.x)
                 {
                     case 2:
-                        score += 5
+                        player.score += 5
                         break;
                     case 1:
-                        score += 3
+                        player.score += 3
                         break;
                     case 0.5:
-                        score += 1
+                        player.score += 1
                         break;
                 }
                 
@@ -245,7 +249,7 @@ function play(delta)
             }
         })
         //colission detection between player and astroid
-        if(hitTestRectangle(player,as) || hitTestRectangle(warpedPlayer,as))
+        if(hitTestRectangle(ship,as) || hitTestRectangle(warpedShip,as))
         {
             state = end
         }
@@ -256,11 +260,13 @@ function resetGame()
 {
     gameScene.visible = true;
     endScene.visible = false;
-    score = 0;
-    difficulty = 0;
-    shipX = 512
-    shipY = 512
-    player.rotation = 0;
+    player.score = 0;
+    player.difficulty = 0;
+    player.shipX = 512
+    player.shipY = 512
+    ship.rotation = 0;
+    ship.vx = 0;
+    ship.vy = 0;
     bullets.forEach(function(bullet)
     {
         gameScene.removeChild(bullet);
@@ -278,7 +284,7 @@ function end(delta)
 {
     gameScene.visible = false
     endScene.visible = true
-    endScoreText.text = "Score:" + score
+    endScoreText.text = "Score:" + player.score
 }
 
 function makeAst()
@@ -288,7 +294,7 @@ function makeAst()
     var randY = randomInt(-40,1064);
     var rand = randomInt(0,3);
     var randAngle = 0
-    as.speed = randomInt(10,30 + Math.floor(difficulty * 3.2)) / 10
+    as.speed = randomInt(10,30 + Math.floor(player.difficulty * 3.2)) / 10
     switch (rand)
     {
         case 0:
@@ -316,148 +322,4 @@ function makeAst()
     as.vy = -as.speed * Math.cos(as.rotation)
     gameScene.addChild(as)
     return as
-}
-
-function hitTestRectangle(r1, r2) 
-{
-
-  //Define the variables we'll need to calculate
-  let hit, combinedHalfWidths, combinedHalfHeights, vx, vy;
-
-  //hit will determine whether there's a collision
-  hit = false;
-
-  //Find the center points of each sprite
-  r1.centerX = r1.x + (r1.width * r1.scale.x) / 2;
-  r1.centerY = r1.y + (r1.height * r1.scale.y) / 2;
-  r2.centerX = r2.x + (r2.width * r2.scale.x) / 2;
-  r2.centerY = r2.y + (r2.height * r2.scale.y) / 2;
-
-  //Find the half-widths and half-heights of each sprite
-  r1.halfWidth = (r1.width * r1.scale.x) / 2;
-  r1.halfHeight = (r1.height * r1.scale.y) / 2;
-  r2.halfWidth = (r2.width * r2.scale.x) / 2;
-  r2.halfHeight = (r2.height * r2.scale.y) / 2;
-
-  //Calculate the distance vector between the sprites
-  vx = r1.centerX - r2.centerX;
-  vy = r1.centerY - r2.centerY;
-
-  //Figure out the combined half-widths and half-heights
-  combinedHalfWidths = r1.halfWidth + r2.halfWidth;
-  combinedHalfHeights = r1.halfHeight + r2.halfHeight;
-
-  //Check for a collision on the x axis
-  if (Math.abs(vx) < combinedHalfWidths) 
-  {
-
-    //A collision might be occurring. Check for a collision on the y axis
-    if (Math.abs(vy) < combinedHalfHeights) 
-    {
-      //There's definitely a collision happening
-      hit = true;
-    } 
-    else 
-    {
-
-      //There's no collision on the y axis
-      hit = false;
-    }
-  }
-  else 
-  {
-
-    //There's no collision on the x axis
-    hit = false;
-  }
-
-  //`hit` will be either `true` or `false`
-  return hit;
-};
-
-function contain(sprite, container) 
-{
-  let collision = undefined;
-  //Left
-  if (sprite.x - (sprite.width / 2) < container.x) 
-  {
-    sprite.x = container.x + (sprite.width / 2);
-    collision = "left";
-  }
-  //Top
-  if (sprite.y - (sprite.width / 2)< container.y) 
-  {
-    sprite.y = container.y + (sprite.width / 2);
-    collision = "top";
-  }
-  //Right
-  if (sprite.x + (sprite.width / 2) > container.width)
-  {
-    sprite.x = container.width - (sprite.width / 2);
-    collision = "right";
-  }
-  //Bottom
-  if (sprite.y + (sprite.height / 2) > container.height) 
-  {
-    sprite.y = container.height - (sprite.height / 2);
-    collision = "bottom";
-  }
-  //Return the `collision` value
-  return collision;
-}
-
-
-//The `randomInt` helper function
-function randomInt(min, max) 
-{
-    return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
-function keyboard(value) 
-{
-  let key = {};
-  key.value = value;
-  key.isDown = false;
-  key.isUp = true;
-  //The `downHandler`
-  key.downHandler = event => 
-  {
-    if (event.key === key.value) 
-    {
-      key.isDown = true;
-      key.isUp = false;
-      event.preventDefault();
-    }
-  };
-
-  //The `upHandler`
-  key.upHandler = event => 
-  {
-    if (event.key === key.value) 
-    {
-      key.isDown = false;
-      key.isUp = true;
-      event.preventDefault();
-    }
-  };
-
-  //Attach event listeners
-  const downListener = key.downHandler.bind(key);
-  const upListener = key.upHandler.bind(key);
-  
-  window.addEventListener(
-    "keydown", downListener, false
-  );
-  window.addEventListener(
-    "keyup", upListener, false
-  );
-  
-  // Detach event listeners
-  key.unsubscribe = () => 
-  {
-    window.removeEventListener("keydown", downListener);
-    window.removeEventListener("keyup", upListener);
-  };
-  
-  return key;
 }
