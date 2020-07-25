@@ -117,9 +117,9 @@ function gameLoop(delta)
     if(inputs.up.isDown)
     {
         ship.vx += Math.sin(ship.rotation ) * 0.1
-        //if(ship.vx >= Math.sin(ship.rotation) * 5) ship.vx = Math.sin(ship.rotation) * 5
+        if(Math.abs(ship.vx) >= Math.abs(Math.sin(ship.rotation) * 5) ship.vx = Math.sin(ship.rotation) * 5
         ship.vy += Math.cos(ship.rotation + Math.PI) * 0.1
-        //if(ship.vy >= Math.cos(ship.rotation + Math.PI) * 5) ship.vy = Math.cos(ship.rotation + Math.PI) * 5
+        if(Math.abs(ship.vy) >= Math.abs(Math.cos(ship.rotation + Math.PI) * 5) ship.vy = Math.cos(ship.rotation + Math.PI) * 5
     }
     if(inputs.space.isDown)
     {
